@@ -6,7 +6,7 @@ class Parser {
   public:
     Parser();
     void parse_input();
-    auto generate_execution_context() -> ExecutionContext;
+    auto generate_grammar() -> Grammar;
 
   private:
     LexicalAnalyzer lexer;

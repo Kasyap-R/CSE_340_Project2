@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -10,7 +11,7 @@ struct Rule {
     IDList rhs;
 };
 
-struct ExecutionContext {
+struct Grammar {
     std::unordered_set<std::string> non_terms;
     std::unordered_set<std::string> terms;
     std::vector<std::string> non_term_order;

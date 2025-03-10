@@ -87,7 +87,7 @@ void Parser::update_universe(const Token &tok) {
     universe_order.push_back(tok.lexeme);
 }
 
-auto Parser::generate_execution_context() -> ExecutionContext {
+auto Parser::generate_grammar() -> Grammar {
     for (const std::string &id : universe_order) {
         if (non_terms.count(id) == 0) {
             terms.insert(id);
@@ -97,9 +97,9 @@ auto Parser::generate_execution_context() -> ExecutionContext {
         }
     }
 
-    return ExecutionContext{std::move(non_terms), std::move(terms),
-                            std::move(non_term_order), std::move(term_order),
-                            std::move(rules)};
+    return Grammar{std::move(non_terms), std::move(terms),
+                   std::move(non_term_order), std::move(term_order),
+                   std::move(rules)};
 }
 
 void Parser::syntax_error() {
