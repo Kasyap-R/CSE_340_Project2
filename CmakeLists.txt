@@ -22,7 +22,7 @@ target_include_directories(parser_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includ
 set_target_properties(parser_core PROPERTIES CXX_CLANG_TIDY "clang-tidy;-checks=cppcoreguidelines-*,modernize-*,performance-*,readability-*")
 
 # Create the assembler executable
-add_executable(a.out src/main.cpp)
+add_executable(a.out src/project2.cpp)
 target_link_libraries(a.out parser_core)
 
 # Make the executable appear in the root directory (needed for the test script)
