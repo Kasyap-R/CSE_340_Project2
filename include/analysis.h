@@ -9,6 +9,6 @@ auto calc_nullable(const Grammar &grammar) -> std::unordered_set<std::string>;
 auto print_first(const Grammar &grammar) -> void;
 auto calc_first(const Grammar &grammar) -> FirstMap;
 auto all_nullable(const std::vector<std::string> &symbols,
-                  const std::unordered_set<std::string> nullable) -> bool;
+                  const std::unordered_set<std::string> &nullable) -> bool;
 
 } // namespace analysis

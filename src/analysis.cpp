@@ -44,33 +44,55 @@ auto calc_nullable(const Grammar &grammar) -> std::unordered_set<std::string> {
 
 auto print_first(const Grammar &grammar) -> void {
     auto first = calc_first(grammar);
-
-    for (const std::string &non_term : grammar.non_term_order) {
+    for (size_t i = 0; i < grammar.non_term_order.size(); i++) {
+        const std::string non_term = grammar.non_term_order[i];
         auto first_order =
             util::generate_ordered_vec(first[non_term], grammar.term_order);
         std::string first_order_string =
             util::join_vec_string(first_order, ", ");
-        std::cout << "First(" << non_term << ") = { " << first_order_string
-                  << " }\n";
+        std::cout << "FIRST(" << non_term << ") = { " << first_order_string
+                  << " }";
+        if (i < grammar.non_term_order.size() - 1) {
+            std::cout << "\n";
+        }
     }
 }
 
 auto calc_first(const Grammar &grammar) -> FirstMap {
     auto nullable = calc_nullable(grammar);
     FirstMap first;
-    // Init Terminals
-    for (const std::string &term : grammar.terms) {
-        first[term].insert(term);
-    }
 
     // Main Loop
     bool changed = true;
     while (changed) {
         changed = false;
 
+        // Loop through all rules
         for (const Rule &rule : grammar.rules) {
+            const std::string lhs = rule.lhs;
+            size_t old_size = first[lhs].size();
+            // ...and all symbols in the rhs of those rules
+            for (const std::string &symbol : rule.rhs) {
 
-            for (int i = rule.rhs.size() - 1; i >= 0; i--) {
+                // If the current symbol is a terminal, add it to the first set
+                // of this non_term and break
+                if (grammar.terms.count(symbol) == 1) {
+                    first[lhs].insert(symbol);
+                    break;
+                }
+
+                // Otherwise if the symbol is a non-terminal, add its first set
+                // to first(lhs)
+                util::merge_sets(first[lhs], first[symbol]);
+
+                if (nullable.count(symbol) == 0) {
+                    break; // If symbol is not nullable, don't check further
+                           // symbols
+                }
+            }
+            // If a first set changed, we need to loop
+            if (old_size != first[lhs].size()) {
+                changed = true;
             }
         }
     }
@@ -79,8 +101,8 @@ auto calc_first(const Grammar &grammar) -> FirstMap {
 }
 
 auto all_nullable(const std::vector<std::string> &symbols,
-                  const std::unordered_set<std::string> nullable) -> bool {
-    for (int i = symbols.size() - 1; i >= 0; i--) {
+                  const std::unordered_set<std::string> &nullable) -> bool {
+    for (size_t i = symbols.size() - 1; i >= 0; i--) {
         if (nullable.count(symbols[i]) == 0) {
             break;
         }

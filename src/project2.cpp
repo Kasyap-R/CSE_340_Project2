@@ -31,7 +31,7 @@ void Task1(const Grammar &grammar) {
 void Task2(const Grammar &grammar) { analysis::print_nullable(grammar); }
 
 // Task 3: FIRST sets
-void Task3() {}
+void Task3(const Grammar &grammar) { analysis::print_first(grammar); }
 
 // Task 4: FOLLOW sets
 void Task4() {}
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
         break;
 
     case 3:
-        Task3();
+        Task3(grammar);
         break;
 
     case 4:

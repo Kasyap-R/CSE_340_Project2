@@ -21,4 +21,10 @@ template <typename T>
 auto merge_vectors(std::vector<T> &vec1, const std::vector<T> &vec2) -> void {
     vec1.insert(vec1.end(), vec2.begin(), vec2.end());
 }
+
+template <typename T>
+auto merge_sets(std::unordered_set<T> &set1, const std::unordered_set<T> &set2)
+    -> void {
+    set1.insert(set2.begin(), set2.end());
+}
 } // namespace util
