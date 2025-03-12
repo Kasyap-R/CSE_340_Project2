@@ -1,5 +1,6 @@
 #include "util.h"
 #include "lexer.h"
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 
@@ -27,20 +28,28 @@ auto join_vec_string(const std::vector<std::string> &vec,
 auto generate_ordered_vec(const std::unordered_set<std::string> &set,
                           const std::vector<std::string> &order)
     -> std::vector<std::string> {
-    std::vector<std::string> ordered;
+    std::vector<std::string> ordered_set;
+
+    // Add dollar sign first even though it is not in the order of terms
+    if (set.count("$") == 1) {
+        ordered_set.emplace_back("$");
+    }
 
     for (const std::string &item : order) {
         if (set.count(item) == 1) {
-            ordered.push_back(item);
+            ordered_set.push_back(item);
         }
     }
 
-    if (ordered.size() != set.size()) {
-        throw std::runtime_error(
-            "All symbols in set were not present in order\n");
-    }
+    return ordered_set;
+}
 
-    return ordered;
+auto print_unordered_set(const std::unordered_set<std::string> &set) -> void {
+    std::cout << "{ ";
+    for (const auto &elem : set) {
+        std::cout << elem << " ";
+    }
+    std::cout << "}\n";
 }
 
 } // namespace util

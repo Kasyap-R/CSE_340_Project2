@@ -1,0 +1,17 @@
+# ninja log v6
+2	4398	1741678373282301670	CMakeFiles/parser_core.dir/src/inputbuf.cpp.o	f28beaa6705de30e
+20	1449	1741679486279955072	CMakeFiles/a.out.dir/src/project2.cpp.o	b3cfe275ead65a8b
+2	5137	1741678373282438250	CMakeFiles/parser_core.dir/src/lexer.cpp.o	79513c5b5045abd7
+4	5591	1741678373285125562	CMakeFiles/parser_core.dir/src/util.cpp.o	6fb9fe9ad1f5f03f
+20	3117	1741679486279467834	CMakeFiles/parser_core.dir/src/project2.cpp.o	1a356d34c3abecef
+2	5702	1741678373282570706	CMakeFiles/parser_core.dir/src/parser.cpp.o	d2ef20bc2784e0db
+19	4496	1741679486278650978	CMakeFiles/parser_core.dir/src/analysis.cpp.o	2abe461a07e0c39f
+4496	4542	1741679490755504882	libparser_core.a	5db83cd2b0cfad1c
+4542	4680	1741679490801492637	/Users/kasyaprachuri/Documents/ASU/CSE_340/Project2/a.out	7bd5a8654dc04bd0
+17	983	1741744352279078076	CMakeFiles/a.out.dir/src/project2.cpp.o	b3cfe275ead65a8b
+16	2905	1741744352278531419	CMakeFiles/parser_core.dir/src/project2.cpp.o	1a356d34c3abecef
+16	3302	1741744352278667625	CMakeFiles/parser_core.dir/src/util.cpp.o	6fb9fe9ad1f5f03f
+16	3535	1741744352278352547	CMakeFiles/parser_core.dir/src/parser.cpp.o	d2ef20bc2784e0db
+15	6582	1741744352277335315	CMakeFiles/parser_core.dir/src/analysis.cpp.o	2abe461a07e0c39f
+6583	6636	1741744358845774283	libparser_core.a	5db83cd2b0cfad1c
+6636	6755	1741744358898544471	/Users/kasyaprachuri/Documents/ASU/CSE_340/Project2/a.out	7bd5a8654dc04bd0

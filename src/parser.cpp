@@ -1,5 +1,3 @@
-#pragma once
-
 #include "parser.h"
 #include "lexer.h"
 #include "util.h"
@@ -21,8 +19,8 @@ void Parser::parse_grammar() {
 }
 
 void Parser::parse_rule_list() {
-    /*Rule-list → Rule Rule-list | Rule*/
-    util::merge_vectors(rules, parse_rule());
+    auto result = parse_rule();
+    util::merge_vectors(rules, result);
     if (parser_util::starts_rule(lexer.peek(1))) {
         parse_rule_list();
     }
@@ -38,9 +36,11 @@ auto Parser::parse_rule() -> std::vector<Rule> {
 
     non_terms.insert(rule_id.lexeme); // Update non_term set
     std::vector<Rule> rules;
+    rules.reserve(rhs.size());
     for (IDList &id_list : rhs) {
-        rules.push_back(Rule{rule_id.lexeme, std::move(id_list)});
+        rules.emplace_back(rule_id.lexeme, id_list);
     }
+
     return rules;
 }
 
@@ -103,7 +103,7 @@ auto Parser::generate_grammar() -> Grammar {
 }
 
 void Parser::syntax_error() {
-    std::cout << "SYNTAX ERROR !!!!!&%!!\n";
+    std::cout << "SYNTAX ERROR !!!!!!!!!!!!!!\n";
     exit(1);
 }
 

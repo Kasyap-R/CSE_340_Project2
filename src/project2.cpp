@@ -34,16 +34,17 @@ void Task2(const Grammar &grammar) { analysis::print_nullable(grammar); }
 void Task3(const Grammar &grammar) { analysis::print_first(grammar); }
 
 // Task 4: FOLLOW sets
-void Task4() {}
+void Task4(const Grammar &grammar) { analysis::print_follow(grammar); }
 
 // Task 5: left factoring
-void Task5() {}
+void Task5(const Grammar &grammar) { analysis::print_left_factored(grammar); }
 
 // Task 6: eliminate left recursion
 void Task6() {}
 
-int main(int argc, char *argv[]) {
-    int task;
+auto main(int argc, char *argv[]) -> int {
+
+    int task = 0;
 
     if (argc < 2) {
         cout << "Error: missing argument\n";
@@ -58,6 +59,7 @@ int main(int argc, char *argv[]) {
     task = atoi(argv[1]);
 
     Parser parser = Parser();
+
     parser.parse_input();
     auto grammar = parser.generate_grammar();
     switch (task) {
@@ -74,11 +76,11 @@ int main(int argc, char *argv[]) {
         break;
 
     case 4:
-        Task4();
+        Task4(grammar);
         break;
 
     case 5:
-        Task5();
+        Task5(grammar);
         break;
 
     case 6:
