@@ -182,14 +182,13 @@ auto calc_left_factored(Grammar grammar) -> std::vector<Rule> {
     // Loop until we clear all non_terms from G
     while (!grammar.non_terms.empty()) {
         vector<string> non_terms_to_delete;
-        vector<string> non_terms_to_add;
         for (const std::string &non_term : grammar.non_terms) {
             // Find the longest common prefix of this non_term's rules
             const vector<string> prefix =
                 longest_com_prefix(rule_map.at(non_term));
 
-            // If there is no common prefix, move the remaining rules of this
-            // non_term from G to G'
+            // If there is no prefix, this non_term has been fully factored,
+            // meaning we can add all of its rules to G'
             if (prefix.empty()) {
                 for (const Rule &rule : rule_map.at(non_term)) {
                     factored_rules.push_back(rule);
@@ -206,35 +205,26 @@ auto calc_left_factored(Grammar grammar) -> std::vector<Rule> {
 
             vector<vector<string>> postfixes =
                 find_postfixes(prefix, rule_map.at(non_term));
-            // std::cout << "Prefix is: " << prefix[0] << "\n";
             rule_map.at(non_term) =
                 remove_rules_with_prefix(prefix, rule_map.at(non_term));
 
-            // Update G'
-            // Generate new non_term and increment factored count
+            // Create our new non term (i.e. A_new)
             factored_count[non_term] = factored_count.count(non_term) == 1
                                            ? factored_count[non_term] + 1
                                            : 1;
             string new_non_term =
                 non_term + std::to_string(factored_count[non_term]);
 
-            // Add the new rules
+            // The new non_terms rules will have NO overlap (if they did that
+            // means we didn't find the longest prefix)
             for (const vector<string> &postfix : postfixes) {
                 factored_rules.emplace_back(new_non_term, postfix);
-                rule_map[new_non_term].emplace_back(new_non_term, postfix);
             }
 
-            // Update G to include A -> prefix A_new
+            // Update rule_map to include A -> prefix A_new
             Rule new_rule = Rule{non_term, prefix};
             new_rule.rhs.push_back(new_non_term);
             rule_map[non_term].push_back(new_rule);
-        }
-
-        // Add the new non terms we created in case THEY have to be left
-        // factored
-        for (const string &new_non_term : non_terms_to_add) {
-            grammar.non_terms.insert(new_non_term);
-            grammar.non_term_order.push_back(new_non_term);
         }
 
         // Remove the non terms that have been fully left factored
