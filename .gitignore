@@ -2,3 +2,4 @@ build/
 .cache/
 a.out
 .DS_Store
+cmake-build-debug/

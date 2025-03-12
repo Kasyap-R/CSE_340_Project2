@@ -1,4 +1,0 @@
-/Users/kasyaprachuri/Documents/ASU/CSE_340/Project2/cmake-build-debug/CMakeFiles/parser_core.dir
-/Users/kasyaprachuri/Documents/ASU/CSE_340/Project2/cmake-build-debug/CMakeFiles/a.out.dir
-/Users/kasyaprachuri/Documents/ASU/CSE_340/Project2/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/kasyaprachuri/Documents/ASU/CSE_340/Project2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
