@@ -1,8 +1,10 @@
 #include "analysis.h"
+#include "types.h"
 #include "util.h"
 #include <algorithm>
 #include <iostream>
 #include <iterator>
+#include <stdexcept>
 #include <string>
 #include <sys/types.h>
 #include <unordered_map>
@@ -131,7 +133,7 @@ auto calc_follow(const Grammar &grammar) -> SetMap {
         changed = false;
         // Loop through rules
         for (const Rule &rule : grammar.rules) {
-            // ...and all symbols in those rules
+            // ...and all symbols in those rules in reverse order
             for (int i = rule.rhs.size() - 1; i >= 0; i--) {
                 const std::string symbol = rule.rhs[i];
 
@@ -145,7 +147,8 @@ auto calc_follow(const Grammar &grammar) -> SetMap {
                 // Rule II and III
                 util::merge_sets(follow[symbol], follow[rule.lhs]);
 
-                // If set sizes changed, we'll need to do this again
+                // If set sizes changed, we'll need to loop through all rules
+                // again
                 if (follow[symbol].size() != old_size) {
                     changed = true;
                 }
@@ -163,77 +166,138 @@ auto calc_follow(const Grammar &grammar) -> SetMap {
 
 auto print_left_factored(const Grammar &grammar) -> void {
     auto factored_rules = calc_left_factored(grammar);
-    vector<string> rule_strings(factored_rules.size());
-    std::transform(factored_rules.begin(), factored_rules.end(),
-                   rule_strings.begin(),
-                   [](const Rule &rule) { return rule.to_string(); });
-    std::sort(rule_strings.begin(), rule_strings.end());
-    std::cout << util::join_vec_string(rule_strings, "\n");
+    print_rules(factored_rules);
 }
 
-auto calc_left_factored(Grammar grammar) -> std::vector<Rule> {
-    // Init G'
-    std::vector<Rule> factored_rules;
+auto print_left_recurse(const Grammar &grammar) -> void {
+    auto rules = calc_left_recursed(grammar);
+    print_rules(rules);
+}
 
-    // Map each (non_term -> vector of its rules)
-    RuleMap rule_map = generate_rule_map(grammar.rules);
-    std::unordered_map<string, int> factored_count;
+auto calc_left_factored(Grammar grammar) -> vector<Rule> {}
 
-    // Loop until we clear all non_terms from G
-    while (!grammar.non_terms.empty()) {
-        vector<string> non_terms_to_delete;
-        for (const std::string &non_term : grammar.non_terms) {
-            // Find the longest common prefix of this non_term's rules
-            const vector<string> prefix =
-                longest_com_prefix(rule_map.at(non_term));
+auto calc_left_recursed(Grammar grammar) -> vector<Rule> {
+    // Setup
+    RuleMap rule_map = gen_rule_map(grammar.rules);
+    std::sort(grammar.non_term_order.begin(), grammar.non_term_order.end());
+    const vector<string> &non_terms = grammar.non_term_order;
 
-            // If there is no prefix, this non_term has been fully factored,
-            // meaning we can add all of its rules to G'
-            if (prefix.empty()) {
-                for (const Rule &rule : rule_map.at(non_term)) {
-                    factored_rules.push_back(rule);
+    for (size_t i = 0; i < non_terms.size(); i++) {
+        const string &curr_nt = non_terms[i];
+
+        auto &curr_nt_rules = rule_map.at(curr_nt);
+
+        // Eliminate Indirect Left Recursion (rule for a non_term can't
+        // start with a previous non_term)
+        for (size_t j = 0; j < i; j++) {
+
+            const string &prev_nt = non_terms[j];
+            vector<Rule> rules_to_add;
+            vector<Rule> rules_to_remove;
+            for (const Rule &curr_rule : curr_nt_rules) {
+
+                if (!curr_rule.starts_with(prev_nt)) {
+                    continue;
                 }
-                rule_map.erase(non_term);
-                non_terms_to_delete.push_back(non_term);
-                continue;
+
+                // Replace prev_nt in curr_rule with each of prev_nt's rule's
+                // rhs
+                // (i.e if B -> Ac and A -> d, replace B -> Ac with B -> dc)
+                vector<Rule> new_rules = replace_nt_for_rhs(
+                    curr_rule, prev_nt, rule_map.at(prev_nt));
+
+                rules_to_add.insert(rules_to_add.end(), new_rules.begin(),
+                                    new_rules.end());
+                rules_to_remove.push_back(curr_rule);
             }
 
-            // Otherwise, we will combine all rules with that prefix into one
-            // rule `A -> prefix A_new` Where A_new will represent all the
-            // different postfixes that could follow that prefix (i.e. A_new ->
-            // postfix1 | postfix2 | postfix3)
-
-            vector<vector<string>> postfixes =
-                find_postfixes(prefix, rule_map.at(non_term));
-            rule_map.at(non_term) =
-                remove_rules_with_prefix(prefix, rule_map.at(non_term));
-
-            // Create our new non term (i.e. A_new)
-            factored_count[non_term] = factored_count.count(non_term) == 1
-                                           ? factored_count[non_term] + 1
-                                           : 1;
-            string new_non_term =
-                non_term + std::to_string(factored_count[non_term]);
-
-            // The new non_terms rules will have NO overlap (if they did that
-            // means we didn't find the longest prefix)
-            for (const vector<string> &postfix : postfixes) {
-                factored_rules.emplace_back(new_non_term, postfix);
+            for (const Rule &rule : rules_to_remove) {
+                curr_nt_rules.erase(rule);
             }
-
-            // Update rule_map to include A -> prefix A_new
-            Rule new_rule = Rule{non_term, prefix};
-            new_rule.rhs.push_back(new_non_term);
-            rule_map[non_term].push_back(new_rule);
+            for (const Rule &rule : rules_to_add) {
+                curr_nt_rules.insert(rule);
+            }
         }
 
-        // Remove the non terms that have been fully left factored
-        for (const string &non_term : non_terms_to_delete) {
-            grammar.non_terms.erase(non_term);
+        // Then Eliminate Direct Left Recursion
+        std::pair<vector<Rule>, vector<Rule>> pair =
+            split_by_left_recurse(curr_nt_rules);
+        auto &recurse_rules = pair.first;
+        auto &non_recurse_rules = pair.second;
+
+        if (recurse_rules.empty()) {
+            continue;
+        }
+
+        string new_nt = curr_nt + "1";
+        rule_map[new_nt] =
+            generate_recursed_new_nt_rules(recurse_rules, new_nt);
+
+        for (const Rule &recurse_rule : recurse_rules) {
+            curr_nt_rules.erase(recurse_rule);
+        }
+
+        for (Rule &non_recurse_rule : non_recurse_rules) {
+            curr_nt_rules.erase(non_recurse_rule);
+            non_recurse_rule.rhs.push_back(new_nt);
+            curr_nt_rules.insert(non_recurse_rule);
         }
     }
 
-    return factored_rules;
+    return rule_map_to_vec(rule_map);
+}
+
+auto generate_recursed_new_nt_rules(const vector<Rule> &recurse_rules,
+                                    const string &new_nt)
+    -> unordered_set<Rule, RuleHasher> {
+    // Transform something like A -> Aabc into A1 -> abcA
+    unordered_set<Rule, RuleHasher> new_rules;
+    for (const Rule &rule : recurse_rules) {
+        Rule new_rule(new_nt, IDList());
+        new_rule.rhs.insert(new_rule.rhs.end(), rule.rhs.begin() + 1,
+                            rule.rhs.end());
+        new_rule.rhs.push_back(new_nt);
+        new_rules.insert(new_rule);
+    }
+    // Add the epsilon rule (A1 -> epsilon) to provide a end point for the
+    // derivation
+    new_rules.insert(Rule(new_nt, IDList()));
+    return new_rules;
+}
+
+auto replace_nt_for_rhs(const Rule &rule, const string &nt_to_replace,
+                        const unordered_set<Rule, RuleHasher> &nt_rules)
+    -> vector<Rule> {
+
+    if (rule.rhs.empty() || rule.rhs[0] != nt_to_replace) {
+        throw std::runtime_error("Expected NT to be first symbol in rule");
+    }
+
+    vector<Rule> replaced_rules;
+    for (const Rule &nt_rule : nt_rules) {
+        Rule new_rule{rule.lhs, IDList()};
+        // Replace NT with one of its rhs
+        new_rule.rhs.insert(new_rule.rhs.end(), nt_rule.rhs.begin(),
+                            nt_rule.rhs.end());
+        // Add the rest of the OG rule (after the nt_to_replace)
+        new_rule.rhs.insert(new_rule.rhs.end(), rule.rhs.begin() + 1,
+                            rule.rhs.end());
+        replaced_rules.push_back(new_rule);
+    }
+    return replaced_rules;
+}
+
+auto split_by_left_recurse(const unordered_set<Rule, RuleHasher> &rules)
+    -> std::pair<vector<Rule>, vector<Rule>> {
+    std::pair<vector<Rule>, vector<Rule>> pair;
+    for (const Rule &rule : rules) {
+        if (!rule.starts_with(rule.lhs)) {
+            pair.second.push_back(rule);
+        } else {
+            pair.first.push_back(rule);
+        }
+    }
+    return pair;
 }
 
 //
@@ -283,90 +347,30 @@ auto first_of_subset(const std::vector<std::string> &symbols,
     return subset_first;
 }
 
-auto generate_rule_map(const std::vector<Rule> &rules) -> RuleMap {
+auto gen_rule_map(const vector<Rule> &rules) -> RuleMap {
     RuleMap rule_map;
     for (const Rule &rule : rules) {
-        rule_map[rule.lhs].push_back(rule);
+        rule_map[rule.lhs].insert(rule);
     }
     return rule_map;
 }
 
-auto longest_com_prefix(const vector<Rule> &rules) -> vector<string> {
-    // SORRY LEETCODE GODS, will be implementing the n^2 * m solution, no tries
-    // today
-
-    vector<string> longest_prefix;
-    string longest_prefix_string = "";
-
-    for (size_t i = 0; i < rules.size() - 1; i++) {
-        for (size_t j = i + 1; j < rules.size(); j++) {
-            size_t smallest_rhs =
-                std::min(rules[i].rhs.size(), rules[j].rhs.size());
-            uint prefix_length = 0;
-            auto &vec1 = rules[i].rhs;
-            auto &vec2 = rules[j].rhs;
-            for (size_t k = 0; k < smallest_rhs; k++) {
-                if (vec1.at(k) != vec2.at(k)) {
-                    break;
-                }
-                prefix_length++;
-            }
-
-            // Create the candidate prefix
-            vector<string> candidate_prefix(vec1.begin(),
-                                            vec1.begin() + prefix_length);
-            string candidate_prefix_string =
-                util::join_vec_string(candidate_prefix, "");
-
-            // Update if longer or equal but lexicographically greater
-            if (prefix_length > longest_prefix.size() ||
-                (prefix_length == longest_prefix.size() &&
-                 candidate_prefix_string > longest_prefix_string)) {
-                longest_prefix = std::move(candidate_prefix);
-                longest_prefix_string = std::move(candidate_prefix_string);
-            }
-        }
-    }
-
-    return longest_prefix;
+auto print_rules(vector<Rule> &rules) -> void {
+    vector<string> rule_strings(rules.size());
+    std::transform(rules.begin(), rules.end(), rule_strings.begin(),
+                   [](const Rule &rule) { return rule.to_string(); });
+    std::sort(rule_strings.begin(), rule_strings.end());
+    std::cout << util::join_vec_string(rule_strings, "\n");
 }
 
-auto find_postfixes(const vector<string> &prefix, const vector<Rule> &rules)
-    -> vector<vector<string>> {
-    vector<vector<string>> postfixes;
-
-    for (const Rule &rule : rules) {
-        if (rule_has_prefix(rule, prefix)) {
-            // Add everything after the prefix as the postfix
-            vector<string> postfix(rule.rhs.begin() + prefix.size(),
-                                   rule.rhs.end());
-            postfixes.push_back(postfix);
+auto rule_map_to_vec(const RuleMap &rule_map) -> vector<Rule> {
+    vector<Rule> res;
+    for (const auto &pair : rule_map) {
+        for (const Rule &rule : pair.second) {
+            res.push_back(rule);
         }
     }
-
-    return postfixes;
-}
-
-auto remove_rules_with_prefix(const vector<string> &prefix, vector<Rule> &rules)
-    -> vector<Rule> {
-    vector<Rule> filtered;
-
-    std::copy_if(
-        rules.begin(), rules.end(), std::back_inserter(filtered),
-        [prefix](const Rule &rule) { return !rule_has_prefix(rule, prefix); });
-    return filtered;
-}
-
-auto rule_has_prefix(const Rule &rule, const vector<string> &prefix) -> bool {
-    if (rule.rhs.size() < prefix.size()) {
-        return false;
-    }
-    for (size_t i = 0; i < prefix.size(); i++) {
-        if (prefix[i] != rule.rhs[i]) {
-            return false;
-        }
-    }
-    return true;
+    return res;
 }
 
 } // namespace analysis

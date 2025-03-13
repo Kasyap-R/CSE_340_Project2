@@ -40,7 +40,7 @@ void Task4(const Grammar &grammar) { analysis::print_follow(grammar); }
 void Task5(const Grammar &grammar) { analysis::print_left_factored(grammar); }
 
 // Task 6: eliminate left recursion
-void Task6() {}
+void Task6(const Grammar &grammar) { analysis::print_left_recurse(grammar); }
 
 auto main(int argc, char *argv[]) -> int {
 
@@ -62,6 +62,7 @@ auto main(int argc, char *argv[]) -> int {
 
     parser.parse_input();
     auto grammar = parser.generate_grammar();
+    analysis::gen_rule_map(grammar.rules);
     switch (task) {
     case 1:
         Task1(grammar);
@@ -84,7 +85,7 @@ auto main(int argc, char *argv[]) -> int {
         break;
 
     case 6:
-        Task6();
+        Task6(grammar);
         break;
 
     default:
