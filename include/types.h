@@ -32,6 +32,34 @@ struct Rule {
 
         return rhs.at(0) == first_symbol;
     }
+
+    auto starts_with(const std::vector<std::string> &prefix) const -> bool {
+        if (rhs.size() < prefix.size()) {
+            return false;
+        }
+
+        for (size_t i = 0; i < prefix.size(); i++) {
+            if (rhs[i] != prefix[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    auto longest_prefix_with(const Rule &other) const
+        -> std::vector<std::string> {
+        size_t smaller_rhs_size =
+            rhs.size() > other.rhs.size() ? other.rhs.size() : rhs.size();
+
+        std::vector<std::string> prefix;
+        for (size_t i = 0; i < smaller_rhs_size; i++) {
+            if (other.rhs[i] != rhs[i]) {
+                break;
+            }
+            prefix.push_back(rhs[i]);
+        }
+        return prefix;
+    }
 };
 
 struct Grammar {

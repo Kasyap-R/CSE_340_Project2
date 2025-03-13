@@ -4,6 +4,7 @@
 #include <unordered_set>
 
 using std::string;
+using std::unordered_map;
 using std::unordered_set;
 using std::vector;
 
@@ -29,6 +30,14 @@ auto calc_follow(const Grammar &grammar) -> SetMap;
 // Task 5
 auto print_left_factored(const Grammar &grammar) -> void;
 auto calc_left_factored(Grammar grammar) -> std::vector<Rule>;
+auto longest_shared_prefix(const unordered_set<Rule, RuleHasher> rules)
+    -> vector<string>;
+auto postfix_of_rules_with_prefix(const unordered_set<Rule, RuleHasher> rules,
+                                  const vector<string> &prefix)
+    -> vector<vector<string>>;
+auto all_rules_that_start_with(const vector<string> &prefix,
+                               const unordered_set<Rule, RuleHasher> rules)
+    -> vector<Rule>;
 
 // Task 6
 auto print_left_recurse(const Grammar &grammar) -> void;
@@ -50,7 +59,6 @@ auto print_set_map(const SetMap &map, const Grammar &grammar,
                    const std::string &set_name) -> void;
 
 auto gen_rule_map(const vector<Rule> &rules) -> RuleMap;
-
 auto print_rules(vector<Rule> &rules) -> void;
 auto rule_map_to_vec(const RuleMap &rule_map) -> vector<Rule>;
 

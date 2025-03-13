@@ -127,7 +127,6 @@ auto calc_follow(const Grammar &grammar) -> SetMap {
     }
 
     // Main Loop: Apply rules II and III until nothing changes
-
     bool changed = true;
     while (changed) {
         changed = false;
@@ -174,7 +173,100 @@ auto print_left_recurse(const Grammar &grammar) -> void {
     print_rules(rules);
 }
 
-auto calc_left_factored(Grammar grammar) -> vector<Rule> {}
+auto calc_left_factored(Grammar grammar) -> vector<Rule> {
+    RuleMap rule_map = gen_rule_map(grammar.rules);
+
+    unordered_map<string, int> factored_count;
+
+    while (!grammar.non_terms.empty()) {
+        vector<string> nts_to_remove;
+        for (const string &non_term : grammar.non_terms) {
+            vector<string> prefix =
+                longest_shared_prefix(rule_map.at(non_term));
+
+            // If no prefix, then we've fully left-factored this non_term
+            if (prefix.empty()) {
+                nts_to_remove.push_back(non_term);
+                continue;
+            }
+
+            vector<vector<string>> postfixes =
+                postfix_of_rules_with_prefix(rule_map.at(non_term), prefix);
+
+            string new_nt =
+                non_term + std::to_string(factored_count[non_term] + 1);
+            factored_count[non_term]++;
+
+            // Remove all original A rule with the prefix
+            vector<Rule> rules_to_remove =
+                all_rules_that_start_with(prefix, rule_map.at(non_term));
+            for (const Rule &rule : rules_to_remove) {
+                rule_map.at(non_term).erase(rule);
+            }
+
+            // add A1 -> postfix1 | postfix2 | postfix3
+            for (const auto postfix : postfixes) {
+                rule_map[new_nt].emplace(new_nt, postfix);
+            }
+
+            // add A -> prefix A1
+            IDList new_rhs = prefix;
+            new_rhs.push_back(new_nt);
+            rule_map[non_term].emplace(non_term, new_rhs);
+        }
+
+        for (const string &nt : nts_to_remove) {
+            grammar.non_terms.erase(nt);
+        }
+    }
+
+    return rule_map_to_vec(rule_map);
+}
+
+auto longest_shared_prefix(const unordered_set<Rule, RuleHasher> rules)
+    -> vector<string> {
+    vector<string> longest_prefix;
+    for (const Rule &rule1 : rules) {
+        for (const Rule &rule2 : rules) {
+            if (rule1 == rule2) {
+                continue;
+            }
+
+            vector<string> prefix = rule2.longest_prefix_with(rule1);
+
+            if (prefix.size() > longest_prefix.size()) {
+                longest_prefix = prefix;
+            }
+        }
+    }
+    return longest_prefix;
+}
+
+auto postfix_of_rules_with_prefix(const unordered_set<Rule, RuleHasher> rules,
+                                  const vector<string> &prefix)
+    -> vector<vector<string>> {
+    vector<vector<string>> postfixes;
+    for (const Rule &rule : rules) {
+        if (!rule.starts_with(prefix)) {
+            continue;
+        }
+        postfixes.emplace_back(rule.rhs.begin() + prefix.size(),
+                               rule.rhs.end());
+    }
+    return postfixes;
+}
+
+auto all_rules_that_start_with(const vector<string> &prefix,
+                               const unordered_set<Rule, RuleHasher> rules)
+    -> vector<Rule> {
+    vector<Rule> res;
+    for (const Rule &rule : rules) {
+        if (rule.starts_with(prefix)) {
+            res.push_back(rule);
+        }
+    }
+    return res;
+}
 
 auto calc_left_recursed(Grammar grammar) -> vector<Rule> {
     // Setup
@@ -184,7 +276,6 @@ auto calc_left_recursed(Grammar grammar) -> vector<Rule> {
 
     for (size_t i = 0; i < non_terms.size(); i++) {
         const string &curr_nt = non_terms[i];
-
         auto &curr_nt_rules = rule_map.at(curr_nt);
 
         // Eliminate Indirect Left Recursion (rule for a non_term can't
@@ -214,6 +305,7 @@ auto calc_left_recursed(Grammar grammar) -> vector<Rule> {
             for (const Rule &rule : rules_to_remove) {
                 curr_nt_rules.erase(rule);
             }
+
             for (const Rule &rule : rules_to_add) {
                 curr_nt_rules.insert(rule);
             }
