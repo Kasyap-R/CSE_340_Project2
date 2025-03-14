@@ -3,7 +3,6 @@
 #include "util.h"
 #include <algorithm>
 #include <iostream>
-#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <sys/types.h>
@@ -12,7 +11,7 @@
 
 namespace analysis {
 
-auto print_nullable(const Grammar &grammar) -> void {
+auto print_nullable_set(const Grammar &grammar) -> void {
     auto nullable = calc_nullable(grammar);
     std::vector<std::string> nullable_order =
         util::generate_ordered_vec(nullable, grammar.non_term_order);
@@ -49,7 +48,7 @@ auto calc_nullable(const Grammar &grammar) -> std::unordered_set<std::string> {
     return nullable;
 }
 
-auto print_first(const Grammar &grammar) -> void {
+auto print_first_sets(const Grammar &grammar) -> void {
     auto first = calc_first(grammar);
     print_set_map(first, grammar, "FIRST");
 }
@@ -101,7 +100,7 @@ auto calc_first(const Grammar &grammar) -> SetMap {
     return first;
 }
 
-auto print_follow(const Grammar &grammar) -> void {
+auto print_follow_sets(const Grammar &grammar) -> void {
     auto follow = calc_follow(grammar);
     print_set_map(follow, grammar, "FOLLOW");
 }
@@ -117,7 +116,8 @@ auto calc_follow(const Grammar &grammar) -> SetMap {
     for (const Rule &rule : grammar.rules) {
         for (size_t i = 0; i < rule.rhs.size(); i++) {
             const std::string symbol = rule.rhs[i];
-            if (grammar.non_terms.count(symbol) == 0) {
+            // Skip over terminals
+            if (grammar.terms.count(symbol) == 1) {
                 continue;
             }
             // Rule IV + V
@@ -136,7 +136,7 @@ auto calc_follow(const Grammar &grammar) -> SetMap {
             for (int i = rule.rhs.size() - 1; i >= 0; i--) {
                 const std::string symbol = rule.rhs[i];
 
-                // Skip terminals
+                // Break on terminals
                 if (grammar.terms.count(symbol) == 1) {
                     break;
                 }
@@ -163,13 +163,13 @@ auto calc_follow(const Grammar &grammar) -> SetMap {
     return follow;
 }
 
-auto print_left_factored(const Grammar &grammar) -> void {
+auto print_left_factored_grammar(const Grammar &grammar) -> void {
     auto factored_rules = calc_left_factored(grammar);
     print_rules(factored_rules);
 }
 
-auto print_left_recurse(const Grammar &grammar) -> void {
-    auto rules = calc_left_recursed(grammar);
+auto print_grammar_without_left_recursion(const Grammar &grammar) -> void {
+    auto rules = eliminate_left_recursion(grammar);
     print_rules(rules);
 }
 
@@ -178,41 +178,41 @@ auto calc_left_factored(Grammar grammar) -> vector<Rule> {
 
     unordered_map<string, int> factored_count;
 
+    // Loop till we've factored all nt's
     while (!grammar.non_terms.empty()) {
         vector<string> nts_to_remove;
-        for (const string &non_term : grammar.non_terms) {
-            vector<string> prefix =
-                longest_shared_prefix(rule_map.at(non_term));
+        for (const string &curr_nt : grammar.non_terms) {
+            vector<string> prefix = longest_shared_prefix(rule_map.at(curr_nt));
 
             // If no prefix, then we've fully left-factored this non_term
             if (prefix.empty()) {
-                nts_to_remove.push_back(non_term);
+                nts_to_remove.push_back(curr_nt);
                 continue;
             }
 
             vector<vector<string>> postfixes =
-                postfix_of_rules_with_prefix(rule_map.at(non_term), prefix);
+                postfix_of_rules_with_prefix(rule_map.at(curr_nt), prefix);
 
             string new_nt =
-                non_term + std::to_string(factored_count[non_term] + 1);
-            factored_count[non_term]++;
+                curr_nt + std::to_string(factored_count[curr_nt] + 1);
+            factored_count[curr_nt]++;
 
-            // Remove all original A rule with the prefix
+            // Remove all rules A -> prefix postfix1 | prefix postfix2
             vector<Rule> rules_to_remove =
-                all_rules_that_start_with(prefix, rule_map.at(non_term));
+                all_rules_that_start_with(prefix, rule_map.at(curr_nt));
             for (const Rule &rule : rules_to_remove) {
-                rule_map.at(non_term).erase(rule);
-            }
-
-            // add A1 -> postfix1 | postfix2 | postfix3
-            for (const auto postfix : postfixes) {
-                rule_map[new_nt].emplace(new_nt, postfix);
+                rule_map.at(curr_nt).erase(rule);
             }
 
             // add A -> prefix A1
             IDList new_rhs = prefix;
             new_rhs.push_back(new_nt);
-            rule_map[non_term].emplace(non_term, new_rhs);
+            rule_map[curr_nt].emplace(curr_nt, new_rhs);
+
+            // add A1 -> postfix1 | postfix2 | postfix3
+            for (const auto &postfix : postfixes) {
+                rule_map[new_nt].emplace(new_nt, postfix);
+            }
         }
 
         for (const string &nt : nts_to_remove) {
@@ -223,26 +223,34 @@ auto calc_left_factored(Grammar grammar) -> vector<Rule> {
     return rule_map_to_vec(rule_map);
 }
 
-auto longest_shared_prefix(const unordered_set<Rule, RuleHasher> rules)
+auto longest_shared_prefix(const unordered_set<Rule, RuleHasher> &rules)
     -> vector<string> {
     vector<string> longest_prefix;
+    string longest_prefix_string;
     for (const Rule &rule1 : rules) {
         for (const Rule &rule2 : rules) {
             if (rule1 == rule2) {
                 continue;
             }
 
-            vector<string> prefix = rule2.longest_prefix_with(rule1);
+            vector<string> candidate_prefix = rule2.longest_prefix_with(rule1);
+            string candidate_prefix_string =
+                util::join_vec_string(candidate_prefix, "");
 
-            if (prefix.size() > longest_prefix.size()) {
-                longest_prefix = prefix;
+            // This prefix must be either larger than curr_largest or equal in
+            // size but lower in lexicographic value
+            if (candidate_prefix.size() > longest_prefix.size() ||
+                (candidate_prefix.size() == longest_prefix.size() &&
+                 candidate_prefix_string < longest_prefix_string)) {
+                longest_prefix = candidate_prefix;
+                longest_prefix_string = candidate_prefix_string;
             }
         }
     }
     return longest_prefix;
 }
 
-auto postfix_of_rules_with_prefix(const unordered_set<Rule, RuleHasher> rules,
+auto postfix_of_rules_with_prefix(const unordered_set<Rule, RuleHasher> &rules,
                                   const vector<string> &prefix)
     -> vector<vector<string>> {
     vector<vector<string>> postfixes;
@@ -257,7 +265,7 @@ auto postfix_of_rules_with_prefix(const unordered_set<Rule, RuleHasher> rules,
 }
 
 auto all_rules_that_start_with(const vector<string> &prefix,
-                               const unordered_set<Rule, RuleHasher> rules)
+                               const unordered_set<Rule, RuleHasher> &rules)
     -> vector<Rule> {
     vector<Rule> res;
     for (const Rule &rule : rules) {
@@ -268,7 +276,7 @@ auto all_rules_that_start_with(const vector<string> &prefix,
     return res;
 }
 
-auto calc_left_recursed(Grammar grammar) -> vector<Rule> {
+auto eliminate_left_recursion(Grammar grammar) -> vector<Rule> {
     // Setup
     RuleMap rule_map = gen_rule_map(grammar.rules);
     std::sort(grammar.non_term_order.begin(), grammar.non_term_order.end());
@@ -415,7 +423,7 @@ auto print_set_map(const SetMap &map, const Grammar &grammar,
 auto all_nullable(const std::vector<std::string> &symbols,
                   const std::unordered_set<std::string> &nullable) -> bool {
     return std::all_of(symbols.begin(), symbols.end(),
-                       [&nullable](const std::string &symbol) {
+                       [&nullable](const std::string &symbol) -> bool {
                            return nullable.count(symbol) == 1;
                        });
 }
@@ -450,7 +458,7 @@ auto gen_rule_map(const vector<Rule> &rules) -> RuleMap {
 auto print_rules(vector<Rule> &rules) -> void {
     vector<string> rule_strings(rules.size());
     std::transform(rules.begin(), rules.end(), rule_strings.begin(),
-                   [](const Rule &rule) { return rule.to_string(); });
+                   [](const Rule &rule) -> string { return rule.to_string(); });
     std::sort(rule_strings.begin(), rule_strings.end());
     std::cout << util::join_vec_string(rule_strings, "\n");
 }

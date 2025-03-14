@@ -22,7 +22,9 @@ add_library(parser_core ${SOURCES})
 target_include_directories(parser_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Ensure Clang-Tidy lints the parser_core for modern practices, core guidelines, performance, and readability
-set_target_properties(parser_core PROPERTIES CXX_CLANG_TIDY "clang-tidy;-checks=cppcoreguidelines-*,modernize-*,performance-*,readability-*")
+set_target_properties(parser_core PROPERTIES 
+    CXX_CLANG_TIDY "clang-tidy;-checks=cppcoreguidelines-*,modernize-*,performance-*,readability-*,-readability-identifier-length"
+)
 
 # Create the assembler executable
 add_executable(a.out src/project2.cpp)

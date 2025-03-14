@@ -4,10 +4,10 @@
  * Do not share this file with anyone
  */
 #include "analysis.h"
+#include "consts.h"
 #include "parser.h"
 #include "types.h"
 #include "util.h"
-#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 
@@ -28,19 +28,23 @@ void Task1(const Grammar &grammar) {
  * Task 2:
  * Print out nullable set of the grammar in specified format.
  */
-void Task2(const Grammar &grammar) { analysis::print_nullable(grammar); }
+void Task2(const Grammar &grammar) { analysis::print_nullable_set(grammar); }
 
 // Task 3: FIRST sets
-void Task3(const Grammar &grammar) { analysis::print_first(grammar); }
+void Task3(const Grammar &grammar) { analysis::print_first_sets(grammar); }
 
 // Task 4: FOLLOW sets
-void Task4(const Grammar &grammar) { analysis::print_follow(grammar); }
+void Task4(const Grammar &grammar) { analysis::print_follow_sets(grammar); }
 
 // Task 5: left factoring
-void Task5(const Grammar &grammar) { analysis::print_left_factored(grammar); }
+void Task5(const Grammar &grammar) {
+    analysis::print_left_factored_grammar(grammar);
+}
 
 // Task 6: eliminate left recursion
-void Task6(const Grammar &grammar) { analysis::print_left_recurse(grammar); }
+void Task6(const Grammar &grammar) {
+    analysis::print_grammar_without_left_recursion(grammar);
+}
 
 auto main(int argc, char *argv[]) -> int {
 
@@ -59,32 +63,31 @@ auto main(int argc, char *argv[]) -> int {
     task = atoi(argv[1]);
 
     Parser parser = Parser();
-
     parser.parse_input();
     auto grammar = parser.generate_grammar();
-    analysis::gen_rule_map(grammar.rules);
+
     switch (task) {
-    case 1:
+    case TASK_1:
         Task1(grammar);
         break;
 
-    case 2:
+    case TASK_2:
         Task2(grammar);
         break;
 
-    case 3:
+    case TASK_3:
         Task3(grammar);
         break;
 
-    case 4:
+    case TASK_4:
         Task4(grammar);
         break;
 
-    case 5:
+    case TASK_5:
         Task5(grammar);
         break;
 
-    case 6:
+    case TASK_6:
         Task6(grammar);
         break;
 

@@ -5,7 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 
-Parser::Parser() : lexer(LexicalAnalyzer()) {};
+Parser::Parser() = default;
 
 void Parser::parse_input() {
     parse_grammar();
